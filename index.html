@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Visualizer</title>
+    <style>
+
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background-color: transparent;
+        }
+
+		.game__button {
+			position: relative;
+			display: inline-block;
+			width: 20px;
+			height: 20px;
+			margin-top: 10px;
+    		background-size: cover;
+			margin-left: 10px;
+		}
+
+		.game__load {
+			background-image: url('load.svg');
+    		background-size: cover;
+		}
+		
+		.game__play {
+			margin-left: 0px;
+			background-image: url('play.svg');
+    		background-size: cover;
+		}
+
+		.game__pause {
+			background-image: url('pause.svg');
+    		background-size: cover;
+		}
+
+		.game__resume {
+			background-image: url('resume.svg');
+    		background-size: cover;
+		}
+
+		.game__next {
+			width: 1px;
+			height: 1px;
+			display: block;
+		}
+		
+		.viza {
+			left: 0px;
+			position: relative;
+			width: 100%;
+			height: 256px;
+		}
+
+		.input {
+			position: relative;
+			left: 0px;
+			width: 5%;
+			height: auto;
+			margin-top: 10px;
+			text-color: #888888;
+		}
+
+		.file {
+			position: absolute;
+			width: 100%;
+			height: 100%;
+			color: transparent; /* Сделать текст невидимым */
+            outline: none; /* Убрать рамку фокуса */
+            border: none; /* Убрать границы */
+			opacity: 0;
+		}
+
+		#fullscreenVideo {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+			z-index: -1;
+		}
+
+		#canvasContainer {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			height: 100vh; /* Для заполнения всей высоты экрана */
+		}
+		
+		.label-gray {
+            color: gray; /* Устанавливаем серый цвет текста */
+        }
+		
+    </style>
+</head>
+<body>
+	<video id="fullscreenVideo" autoplay loop muted>
+		<source src="video2.mp4" type="video/mp4">
+		Your browser does not support the video tag.
+	</video>
+	<script>
+		const video = document.getElementById('fullscreenVideo');
+		// Проверяем, если видео закончилось, сбрасываем текущее время до начала и снова воспроизводим
+		video.addEventListener('ended', function() {
+		this.currentTime = 0;
+		this.play();
+		}, false);
+	</script>
+	<div id="canvasContainer">
+		<canvas class="viza" id="visualizer"></canvas>
+	</div>
+	<script>window.stop = false</script>
+	<div class="game__button game__play" onclick="play()"></div>
+	<div class="game__button game__pause" onclick="stop()"></div>
+	<div class="game__button game__resume" onclick="resume()"></div>
+	<div class="game__button game__load">
+		<input class="file" type="file" id="musicInput" accept="audio/*" onchange="loadMusic(event)">
+		<script>
+			function loadMusic(event) {
+				const file = event.target.files[0];
+				const objectURL = URL.createObjectURL(file);
+    			window.audioSrc  = objectURL;
+			}
+		</script>
+	</div>
+	<div class="game__button game__next"></div>
+	<input class="input" type="text" id="field1" name="field1" value="255"> <span class="label-gray">Доля красного в подсветке<br>
+	<input class="input" type="text" id="field2" name="field2" value="255"> Доля красного в индикаторах<br>
+	<input class="input" type="text" id="field3" name="field3" value="0.5"> Множитель зеленого в подсветке<br>
+	<input class="input" type="text" id="field4" name="field4" value="1"> Множитель зеленого в индикаторах<br>
+	<input class="input" type="text" id="field5" name="field5" value="40"> Размер раскаленного края<br>
+	<input class="input" type="text" id="field6" name="field6" value="0"> Минимум для поджога края<br>
+	<input class="input" type="text" id="field7" name="field7" value="0"> Множетель тепмературы раскаленного края<br>
+    <input class="input" type="text" id="field8" name="field8" value="0.3"> Прозрачность раскаленного края<br>
+	<input class="input" type="text" id="field9" name="field9" value="0.2"> Мощность подсветки<br>
+	<input class="input" type="text" id="field10" name="field10" value="2"> Минимальный размер индикатора<br>
+	<input class="input" type="text" id="field11" name="field11" value="0.2"> Множитель зеленого в раскаленных краях<br>
+	<input class="input" type="text" id="field12" name="field12" value="0.8"> Сглаживание<br>
+	<input class="input" type="text" id="field13" name="field13" value="true"> Зеркало<br>
+	<input class="input" type="text" id="field14" name="field14" value="-80"> Мощность<br>
+	<input class="input" type="text" id="field15" name="field15" value="2048"> Окно захвата "fftSize" (степень 2)<br>
+	<input class="input" type="text" id="field16" name="field16" value="0.4"> Размер индикатора<br>
+	<script>
+		function stop() {
+			if (window.audio) {window.audio.pause();}
+		}
+		function resume() {
+			if (window.audio) {console.log(window.audio.play());}
+		}
+	function play() {
+		let audio;
+		if (window.audioSrc)
+		{audio = new Audio(window.audioSrc); console.log(window.audioSrc); }
+		else
+		{audio = new Audio("music.mp3"); console.log(audio.scr);}
+		audio.addEventListener("canplaythrough", (event) => {
+		/* аудио может быть воспроизведено; проиграть, если позволяют разрешения */
+			audio.play();
+		});
+		window.audio = audio;
+			let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+			let source = audioCtx.createMediaElementSource(audio);
+			let analyser = audioCtx.createAnalyser();
+			const canvas = document.getElementById('visualizer');
+			canvas.style.width = canvas.getBoundingClientRect().width + 'px';
+			canvas.width = canvas.getBoundingClientRect().width;
+			canvas.height = canvas.getBoundingClientRect().height;
+			const ctx = canvas.getContext('2d');
+			const playButton = document.getElementById('playButton');
+			audio.crossOrigin = "anonymous"; // to prevent CORS issues
+			let ch12 = document.getElementById("field12").value;
+			ch12 = isNaN(parseFloat(ch12)) ? 0 : ch12;
+			let ch15 = document.getElementById("field15").value;
+			ch15 = isNaN(parseFloat(ch15)) ? 0 : ch15;
+			document.getElementById("field12").disabled = true;
+			document.getElementById("field15").disabled = true;
+			source.connect(analyser);
+			analyser.connect(audioCtx.destination);
+			analyser.fftSize = ch15;
+			analyser.smoothingTimeConstant = ch12;
+			const bufferLength = analyser.frequencyBinCount;
+			const dataArray = new Uint8Array(bufferLength);
+			console.log(bufferLength);
+			function draw() {
+					requestAnimationFrame(draw);
+					analyser.getByteFrequencyData(dataArray);
+					ctx.clearRect(0, 0, canvas.width, canvas.height);
+					let ch13 = document.getElementById("field13").value;
+					ch13 = ch13 == "true" ? true : false;
+					let ch16 = document.getElementById("field16").value;
+					ch16 = isNaN(parseFloat(ch16)) ?  0.1 : ch16;
+					const totalBars = ch13 ? 256 : 128; // общее количество палочек
+					const barWidth = canvas.width / totalBars * ch16;
+					const barSpacing = canvas.width / totalBars * (1 - ch16); // пространство между палочками
+					const totalBarsStart = 0
+					const halfBars = 128; // половина палочек для отзеркаливания
+					let ch14 = document.getElementById("field14").value;
+					ch14 = isNaN(parseInt(ch14)) ? 0 : ch14;
+					ch14 = ch14 > -30 ? -30 : ch14;
+					analyser.minDecibels = ch14;
+					let ch1 = document.getElementById("field1").value;
+					let ch2 = document.getElementById("field2").value;
+					let ch3 = document.getElementById("field3").value;
+					let ch4 = document.getElementById("field4").value;
+					let ch5 = document.getElementById("field5").value;
+					let ch6 = document.getElementById("field6").value;
+					let ch7 = document.getElementById("field7").value;
+					let ch8 = document.getElementById("field8").value;
+					let ch9 = document.getElementById("field9").value;
+					let ch10 = document.getElementById("field10").value;
+					let ch11 = document.getElementById("field11").value;
+					ch1 = isNaN(parseFloat(ch1)) ? 0 : ch1;
+					ch2 = isNaN(parseFloat(ch2)) ? 0 : ch2;
+					ch3 = isNaN(parseFloat(ch3)) ? 0 : ch3;
+					ch4 = isNaN(parseFloat(ch4)) ? 0 : ch4;
+					ch5 = isNaN(parseFloat(ch5)) ? 0 : (100 - ch5) / 200;
+					ch5 = ch5 > 0.5 ? 0.49 : ch5;
+					ch6 = isNaN(parseFloat(ch6)) ? 0 : ch6;
+					ch7 = isNaN(parseFloat(ch7)) ? 0 : ch7;
+					ch8 = isNaN(parseFloat(ch8)) ? 0 : ch8;
+					ch9 = isNaN(parseFloat(ch9)) ? 0 : ch9;
+					ch10 = isNaN(parseInt(ch10)) ? 0 : (ch10 / 1);
+					ch11 = isNaN(parseFloat(ch11)) ? 0 : ch11;
+					let sum = 0;
+					let count = 0;
+					for (let i = 0; i <= 255; i++) {
+						if (i < dataArray.length) {
+							sum += dataArray[i];
+							count++;
+						}
+					}
+					const average = sum / count;
+					const video = document.getElementById('fullscreenVideo');
+					video.style.filter = `brightness(${90 + average / 5}%)`;
+					for (let i = totalBarsStart; i < totalBars; i++) {
+					let barHeight;
+						if (i < halfBars) {
+							barHeight = dataArray[i];
+						}
+						else
+						{
+							barHeight = dataArray[totalBars - i];
+						}
+						let x;
+							x = i * (barWidth + barSpacing);
+
+						// Отрисовка палочки
+						let gradient = ctx.createRadialGradient(x + barWidth / 2, canvas.height / 2, 0, x + barWidth / 2, canvas.height / 2, barHeight / 2);
+						gradient.addColorStop(0, `rgba(${ch1}, ${barHeight * ch3}, 0, ${ch9})`); // Промежуточный цвет с некоторой прозрачностью
+						gradient.addColorStop(1, `rgba(${ch1}, ${barHeight * ch3}, 0, 0)`); // Конечный цвет полностью прозрачный
+
+						// Отрисовываем палочку с использованием градиента
+						ctx.fillStyle = gradient;
+						ctx.fillRect(x - (50 + barHeight) / 2, canvas.height / 2 - barHeight / 2, 50 + barHeight, 50 + barHeight);
+					}
+					for (let i = totalBarsStart; i < totalBars; i++) {
+					let barHeight;
+						if (i < halfBars) {
+							barHeight = dataArray[i];
+						}
+						else
+						{
+							barHeight = dataArray[totalBars - i];
+						}
+						let x;
+							x = i * (barWidth + barSpacing);
+
+						// Отрисовка палочки
+						let gradient = ctx.createLinearGradient(0, canvas.height / 2 - (ch10 + barHeight) / 2, 0, canvas.height / 2 + (ch10 + barHeight) / 2);
+						gradient.addColorStop(0, `rgba(255,  ${(barHeight) * ch4 * ch11}, 0, ${ch8})`); // Промежуточный цвет с некоторой прозрачностью
+						gradient.addColorStop(0.5 - (barHeight > ch6 ? ch5 : 0.5), `rgb(${ch2}, ${255 * ch4}, 0)`); // Конечный цвет полностью прозрачный
+						gradient.addColorStop(0.5 + (barHeight > ch6 ? ch5 : 0.5), `rgb(${ch2}, ${255 * ch4}, 0)`);
+						gradient.addColorStop(1, `rgba(255,  ${(barHeight) * ch4 * ch11}, 0, ${ch8})`); // Конечный цвет полностью прозрачный
+						ctx.fillStyle = gradient;
+						ctx.fillRect(x, canvas.height / 2 - (ch10 + barHeight) / 2, barWidth, ch10 + barHeight);
+					}
+			}
+		 // начать воспроизведение при нажатии на кнопку
+		draw(); // запустить визуализатор
+	}
+	</script>
+</body>
+</html>
